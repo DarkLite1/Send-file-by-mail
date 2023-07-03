@@ -1,0 +1,31 @@
+{
+  "Tasks": [
+    {
+      "Mail": {
+        "Header": "Application A",
+        "Subject": "Application A",
+        "To": ["bob@constoso.com"],
+        "Cc": ["jack@constoso.com"],
+        "Bcc": ["mike@constoso.com"],
+        "Priority": "Normal",
+        "Body": "<p>Dear</p><p>Please find in attachment files for application A.</p>"
+      },
+      "ComputerName": ["PC1"],
+      "File": ["C:\\file1.txt"],
+      "?": "Send one e-mail with 'file1.txt' in attachment to Bob, Jack and Mike."
+    },
+    {
+      "Mail": {
+        "Header": "Application B",
+        "To": ["bond@constoso.com"],
+        "Cc": [],
+        "Bcc": [],
+        "Priority": "Normal",
+        "Body": "<p>Dear</p><p>Please find in attachment files for application B.</p>"
+      },
+      "ComputerName": ["PC2", "PC3"],
+      "File": ["C:\\file2.txt", "C:\\file3.txt"],
+      "?": "Send one e-mail with 4 files in attachment to Bond because there are 2 files on each computer."
+    }
+  ]
+}
