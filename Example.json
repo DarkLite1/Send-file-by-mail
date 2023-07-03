@@ -2,6 +2,7 @@
   "Tasks": [
     {
       "Mail": {
+        "From": "bob@constoso.com",
         "Header": "Application A",
         "Subject": "Application A",
         "To": ["bob@constoso.com"],
@@ -16,6 +17,7 @@
     },
     {
       "Mail": {
+        "From": "bob@constoso.com",
         "Header": "Application B",
         "To": ["bond@constoso.com"],
         "Cc": [],

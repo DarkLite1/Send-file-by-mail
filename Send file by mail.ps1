@@ -211,6 +211,10 @@ Process {
             }
             #endregion
 
+            if ($task.Mail.From) {
+                $mailParams.From = $task.Mail.From
+            }
+
             #region Send mail
             Write-Verbose 'Send mail'
 
