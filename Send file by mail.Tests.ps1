@@ -39,12 +39,6 @@ BeforeAll {
         ScriptAdmin = 'admin@contoso.com'
     }
 
-    $MailAdminParams = {
-        ($To -eq $testParams.ScriptAdmin) -and
-        ($Priority -eq 'High') -and
-        ($Subject -eq 'FAILURE')
-    }
-
     Mock Send-MailHC
     Mock Write-EventLog
 }
@@ -55,6 +49,13 @@ Describe 'the mandatory parameters are' {
     }
 }
 Describe 'send an e-mail to the admin when' {
+    BeforeAll {
+        $MailAdminParams = {
+            ($To -eq $testParams.ScriptAdmin) -and
+            ($Priority -eq 'High') -and
+            ($Subject -eq 'FAILURE')
+        }
+    }
     It 'the log folder cannot be created' {
         $testNewParams = $testParams.clone()
         $testNewParams.LogFolder = 'xxx:://notExistingLocation'
@@ -187,10 +188,12 @@ Describe 'Option.ErrorWhen.AttachmentNotFound is true' {
         Should -Invoke Send-MailHC -Not -ParameterFilter {
             ($To -eq $testNewInputFile.Tasks[0].Mail.To)
         }
-        Should -Invoke Send-MailHC -ParameterFilter {
-            (& $MailAdminParams)
+        Should -Invoke Send-MailHC -Times 1 -Exactly -ParameterFilter {
+            ($To -eq $testParams.ScriptAdmin) -and
+            ($Priority -eq 'High') -and
+            ($Subject -eq '1 attachment not found')
         }
-    }
+    } -Tag test
 }
 Describe 'Option.ErrorWhen.AttachmentNotFound is false' {
     BeforeAll {
