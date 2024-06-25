@@ -1,12 +1,12 @@
 ﻿#Requires -Version 5.1
 #Requires -Modules Toolbox.EventLog, Toolbox.HTML
 
-<# 
-    .SYNOPSIS   
+<#
+    .SYNOPSIS
         Send specific files to users by mail.
 
     .DESCRIPTION
-        All parameters are defined in the input file. Which file on which 
+        All parameters are defined in the input file. Which file on which
         computer, and where to send the e-mail too with the file in attachment.
 
     .PARAMETER ImportFile
@@ -17,9 +17,6 @@
 
     .PARAMETER Tasks.Mail
         To who the e-mail will be sent.
-
-    .PARAMETER Tasks.ComputerName
-        On which computer(s) the file(s) are stored.
 
     .PARAMETER Tasks.File
         Which file(s) to sent
@@ -40,16 +37,6 @@ Param (
 
 Begin {
     Try {
-        Function ConvertTo-UncPathHC {
-            Param (
-                [Parameter(Mandatory)]
-                [String]$ComputerName,
-                [Parameter(Mandatory)]
-                [String]$LocalPath
-            )
-            '\\{0}\{1}' -f $ComputerName, $LocalPath.Replace(':', '$')
-        }
-
         Import-EventLogParamsHC -Source $ScriptName
         Write-EventLog @EventStartParams
         Get-ScriptRuntimeHC -Start
@@ -85,26 +72,22 @@ Begin {
         }
 
         foreach ($task in $Tasks) {
-            @('Mail', 'ComputerName', 'File') | 
+            @('Mail', 'Option') |
             ForEach-Object {
                 if (-not $task.$_) {
                     throw "Input file '$ImportFile': Property 'Tasks.$_' not found."
-                }    
+                }
             }
 
-            @('Header', 'To', 'Body', 'Priority', 'Subject') | 
+            @('Header', 'To', 'Body', 'Priority', 'Subject') |
             ForEach-Object {
                 if (-not $task.Mail.$_) {
                     throw "Input file '$ImportFile': Property 'Tasks.Mail.$_' not found."
-                }    
+                }
             }
 
             if (-not ($task.Mail.Priority -match '^high$|^low$|^normal$')) {
                 throw "Input file '$ImportFile': Property 'Tasks.Mail.Priority' is not 'High', 'Low' or 'Normal'."
-            }
-            
-            if (-not ($task.File -match ':')) {
-                throw "Input file '$ImportFile': File '$($task.File)' is not supported, only local file paths are supported."
             }
         }
         #endregion
@@ -134,63 +117,42 @@ Process {
                 Save      = '{0} - {1} - Mail.html' -f $logFile, $i
             }
 
-            #region Find files
-            $files = @{
+            #region Mail attachment
+            $attachment = @{
                 Found    = @()
                 NotFound = @()
             }
 
-            foreach ($computer in $task.ComputerName) {
-                foreach ($file in $task.File) {
-                    $convertParams = @{
-                        ComputerName = $computer
-                        LocalPath    = $file
-                    }
-                    $path = ConvertTo-UncPathHC @convertParams
-
-                    $testPathParams = @{
-                        LiteralPath = $path 
-                        PathType    = 'Leaf' 
-                        ErrorAction = 'Stop'
-                    }
-                    if (-not (Test-Path @testPathParams)) {
-                        $M = "File '$path' not found"
-                        Write-Warning $M
-                        Write-EventLog @EventErrorParams -Message $M
-
-                        $files.NotFound += $path
-                        Continue
-                    }
-
-                    $M = "Found file '$path'"
-                    Write-Verbose $M
-                    Write-EventLog @EventVerboseParams -Message $M
-
-                    $files.Found += $path
+            foreach ($file in $task.Attachment) {
+                $testPathParams = @{
+                    LiteralPath = $file
+                    PathType    = 'Leaf'
+                    ErrorAction = 'Stop'
                 }
-            }
-            #endregion
+                if (-not (Test-Path @testPathParams)) {
+                    $M = "Attachment file '$file' not found"
+                    Write-Warning $M
+                    Write-EventLog @EventErrorParams -Message $M
 
-            #region Create HTML list for files not found
-            $filesNotFoundHtml = if ($files.NotFound) {
-                $mailParams.Priority = 'High'
-                $params = @{
-                    Message = $files.NotFound
-                    Header  = 'Files not found'
+                    $attachment.NotFound += $file
+                    Continue
                 }
-                ConvertTo-HtmlListHC @params
+
+                $M = "Attachment file '$file' found"
+                Write-Verbose $M
+                Write-EventLog @EventVerboseParams -Message $M
+
+                $attachment.Found += $file
+            }
+
+            if ($attachment.Found) {
+                $mailParams.Attachments = $attachment.Found
             }
             #endregion
 
-            #region Add found files in attachment to mail
-            if ($files.Found) {
-                $mailParams.Attachments = $files.Found
-            }
-            #endregion
-            
             #region Mail cc
             if (
-                $mailCc = $task.Mail.Cc | 
+                $mailCc = $task.Mail.Cc |
                 Where-Object { $ScriptAdmin -notContains $_ }
             ) {
                 $mailParams.Cc = $mailCc
@@ -202,8 +164,8 @@ Process {
 
             if ($task.Bcc) {
                 foreach (
-                    $mailBcc in 
-                    $task.Mail.Bcc | 
+                    $mailBcc in
+                    $task.Mail.Bcc |
                     Where-Object { $ScriptAdmin -notContains $_ }
                 ) {
                     $mailParams.Bcc += $mailBcc
@@ -211,17 +173,48 @@ Process {
             }
             #endregion
 
+            #region Mail From
             if ($task.Mail.From) {
                 $mailParams.From = $task.Mail.From
             }
+            #endregion
 
             #region Send mail
-            Write-Verbose 'Send mail'
+            if (
+                $task.Option.ErrorWhen.AttachmentNotFound -and
+                $attachment.NotFound
+            ) {
+                $mailParams.Priority = 'High'
+                $mailParams.To = $ScriptAdmin
+                $mailParams.Subject = '{0} attachment{1} not found' -f
+                $($attachment.NotFound.Count),
+                $(if ($attachment.NotFound.Count -ne 1) { 's' })
 
-            $mailParams.BodyHtml = "{0}{1}" -f 
-            $task.Mail.Body, $filesNotFoundHtml
+                #region Create HTML list for files not found
+                $attachmentNotFoundHtml = if ($attachment.NotFound) {
+                    $params = @{
+                        Message = $attachment.NotFound
+                        Header  = 'Attachments not found'
+                    }
+                    ConvertTo-HtmlListHC @params
+                }
+                #endregion
 
-            Send-MailHC @mailParams
+                Write-Verbose 'Send mail to admin'
+
+                $mailParams.BodyHtml = "{0}{1}{2}" -f
+                'No e-mail sent to the users because not all attachments were found',
+                $task.Mail.Body, $attachmentNotFoundHtml
+
+                Send-MailHC @mailParams
+            }
+            else {
+                Write-Verbose 'Send mail to user'
+
+                $mailParams.BodyHtml = $task.Mail.Body
+
+                Send-MailHC @mailParams
+            }
             #endregion
         }
         #endregion

@@ -9,11 +9,18 @@
         "Cc": ["jack@constoso.com"],
         "Bcc": ["mike@constoso.com"],
         "Priority": "Normal",
-        "Body": "<p>Dear</p><p>Please find in attachment files for application A.</p>"
+        "Body": "<p>Please find in attachment your files</p>",
+        "Attachment": [
+          "\\\\PC\\C$\\file1.txt",
+          "\\\\PC\\C$\\file2.txt",
+          "\\\\PC\\C$\\file3.txt"
+        ]
       },
-      "ComputerName": ["PC1"],
-      "File": ["C:\\file1.txt"],
-      "?": "Send one e-mail with 'file1.txt' in attachment to Bob, Jack and Mike."
+      "Option": {
+        "ErrorWhen": {
+          "AttachmentNotFound": true
+        }
+      }
     },
     {
       "Mail": {
@@ -23,11 +30,14 @@
         "Cc": [],
         "Bcc": [],
         "Priority": "Normal",
-        "Body": "<p>Dear</p><p>Please find in attachment files for application B.</p>"
+        "Body": "<p>Dear</p><p>Please find in attachment files for application B.</p>",
+        "Attachment": []
       },
-      "ComputerName": ["PC2", "PC3"],
-      "File": ["C:\\file2.txt", "C:\\file3.txt"],
-      "?": "Send one e-mail with 4 files in attachment to Bond because there are 2 files on each computer."
+      "Option": {
+        "ErrorWhen": {
+          "AttachmentNotFound": true
+        }
+      }
     }
   ]
 }
