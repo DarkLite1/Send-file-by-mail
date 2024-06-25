@@ -207,6 +207,10 @@ Process {
                 $task.Mail.Body, $attachmentNotFoundHtml
 
                 Send-MailHC @mailParams
+
+                $M = "No e-mail sent to the users because not all attachments were found"
+                Write-Verbose $M
+                Write-EventLog @EventErrorParams -Message $M
             }
             else {
                 Write-Verbose 'Send mail to user'
@@ -219,7 +223,7 @@ Process {
         }
         #endregion
 
-        $M = "Sent $I mails"
+        $M = "Sent {0} mail{1}" -f $I, $(if ($I -ne 1) {'s'})
         Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
         Get-ScriptRuntimeHC -Stop
