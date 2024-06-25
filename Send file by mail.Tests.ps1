@@ -193,7 +193,7 @@ Describe 'Option.ErrorWhen.AttachmentNotFound is true' {
             ($Priority -eq 'High') -and
             ($Subject -eq '1 attachment not found')
         }
-    } -Tag test
+    }
 }
 Describe 'Option.ErrorWhen.AttachmentNotFound is false' {
     BeforeAll {
