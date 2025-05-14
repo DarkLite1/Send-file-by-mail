@@ -123,7 +123,7 @@ Process {
                 NotFound = @()
             }
 
-            foreach ($file in $task.Attachment) {
+            foreach ($file in $task.Mail.Attachment) {
                 $testPathParams = @{
                     LiteralPath = $file
                     PathType    = 'Leaf'
